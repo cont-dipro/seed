@@ -1,0 +1,331 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id              Int       @id @default(autoincrement())
+  password        String
+  name            String?
+  email           String?   @unique
+  emailVerifiedAt DateTime?
+  image           String?
+  role            Role      @default(Admin)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @default(now())
+  token           String    @unique
+  agencyId        Int?
+  agency          Agency?   @relation(fields: [agencyId], references: [id])
+
+  @@map(name: "users")
+}
+
+model Agency {
+  id                   Int                   @id @default(autoincrement())
+  createdAt            DateTime              @default(now())
+  updatedAt            DateTime              @updatedAt
+  name                 String?
+  user                 User[]
+  storeType            StoreType
+  customerActivityLogs CustomerActivityLog[]
+  orders               Order[]
+  customers            Customer[]
+  customerWarrantyLogs  CustomerWarrantyLog[]
+
+  @@map(name: "agencies")
+}
+
+enum Role {
+  Employee
+  Admin
+  SuperAdmin
+}
+
+model Customer {
+  // customer information
+  id                         Int              @id @default(autoincrement())
+  createdAt                  DateTime         @default(now())
+  updatedAt                  DateTime         @updatedAt
+  accountId                  String?
+  surName                    String
+  name                       String?
+  furigana                   String?
+  sizeA                      String?
+  sizeB                      String?
+  visitReason                VisitReason?
+  agencyId                   Int
+  agency                     Agency           @relation(fields: [agencyId], references: [id])
+  birthday                   DateTime?        @db.Date
+  closedDeal                 Boolean?
+  scheduleWeddingDate        DateTime?        @db.Date
+  engagementRegistrationDate DateTime?        @db.Date
+  staffName                  String?
+  // contact information
+  phone                      String?
+  email                      String?
+  addressUpdatedDate         DateTime?        @db.Date
+  postalCode                 String?
+  address                    String?
+  newPostalCode              String?
+  newAddress                 String?
+  // additional information
+  purposeOfUse               PurposeOfUse?
+  consideredBrand            ConsideredBrand?
+  referenceSource            ReferenceSource?
+  contractDate               DateTime?        @db.Date
+  // spouse information
+  fianceName                 String?
+  fianceFurigana             String?
+  fianceAddress              String?
+  fianceSizeA                String?
+  fianceSizeB                String?
+  fiancePhone                String?
+  fianceEmail                String?
+  // Memo
+  note                       String?
+
+  orders               Order[]
+  customerActivityLogs CustomerActivityLog[]
+  customerWarrantyLogs CustomerWarrantyLog[]
+
+  @@map(name: "customers")
+}
+
+enum ReferenceSource {
+  Homepage
+  KeywordSearch
+  OtherWebsites
+  Instagram
+  DirectStore
+  Introduction
+  Passing
+  Maintenance
+  Others
+}
+
+enum VisitReason {
+  Website
+  DirectAtStore
+  None
+}
+
+enum PurposeOfUse {
+  Engagement
+  Wedding
+  Anniversary
+}
+
+enum ConsideredBrand {
+  Niessing
+  FullerJaco
+  Fisher
+  Meister
+  Boucheron
+  Tiffany
+}
+
+model CustomerActivityLog {
+  id                        Int             @id @default(autoincrement())
+  createdAt                 DateTime        @default(now())
+  updatedAt                 DateTime        @updatedAt
+  customerId                Int?
+  customer                  Customer?       @relation(fields: [customerId], references: [id])
+  agencyId                  Int?
+  agency                    Agency?         @relation(fields: [agencyId], references: [id])
+  staffName                 String?
+  serveTime                 Int?
+  numberOfVisit             Int?
+  visitedTimes              Int?
+  visitDate                 DateTime?
+  visitedDayOfWeek          DayOfWeek?
+  visitedAt                 String?
+  purposeOfVisit            PurposeOfVisit?
+  isRegistrationMemberVisit Boolean?        @default(false)
+  note                      String?
+
+  @@map("customer_activity_logs")
+}
+
+enum PurposeOfVisit {
+  Preview
+  CloseADeal
+  Warranty
+}
+
+enum StoreType {
+  Agency
+  DirectStore
+}
+
+enum DayOfWeek {
+  Monday
+  Tuesday
+  Wednesday
+  Thursday
+  Friday
+  Saturday
+  Sunday
+}
+
+model Category {
+  id        Int       @id @default(autoincrement())
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  products  Product[]
+  name      String?
+  image     String?
+
+  @@map("categories")
+}
+
+model Product {
+  id               Int         @id @unique
+  createdAt        DateTime    @default(now())
+  updatedAt        DateTime    @updatedAt
+  category         Category?   @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  categoryId       Int?
+  orders           Order[]
+  name             String?
+  image            String?
+  partNumber       String?
+  barCode          String?
+  sculptureContent String?
+  singleColor      String?
+  redColor         String?
+  grayColor        String?
+  roseColor        String?
+  yellowColor      String?
+  platinumColor    String?
+  productType      ProductType
+
+  @@map("products")
+}
+
+enum ProductType {
+  Gold
+  Diamond
+}
+
+model Order {
+  id                       Int            @id @default(autoincrement())
+  createdAt                DateTime       @default(now())
+  updatedAt                DateTime       @updatedAt
+  orderCode                String?
+  customerId               Int?
+  customer                 Customer?      @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  agencyId                 Int?
+  agency                   Agency?        @relation(fields: [agencyId], references: [id], onDelete: Cascade)
+  value                    Int?
+  paymentMethodFirstTime   PaymentMethod?
+  paymentMethodSecondTime  PaymentMethod?
+  paidAmountFirstTime      Int?
+  paidAmountFirstTimeDate  DateTime?      @db.Date
+  paidAmountSecondTime     Int?
+  paidAmountSecondTimeDate DateTime?      @db.Date
+  accountBalance           Int?
+  date                     DateTime?      @db.Date
+  deliveryDate             DateTime?      @db.Date
+  size                     Int?
+  price                    Int?
+  productId                Int?
+  product                  Product?       @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  orderDetails        OrderDetail[]
+  customerWarrantyLogs CustomerWarrantyLog[]
+
+  @@map("orders")
+}
+
+enum PaymentMethod {
+  Cash
+  Transfer
+  Rakuten
+  David
+  JCB
+  AMEX
+  UC
+  DC
+  Diners
+  Credit
+  Others
+}
+
+model OrderDetail {
+  id               Int              @id @default(autoincrement())
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+  orderId          Int?
+  order            Order?           @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  owner            Owner
+  diamondStyle     DiamondStyle?
+  diamondPosition  DiamondPosition?
+  linePosition     LinePosition?
+  fontFamily       FontFamily
+  sculptureText    String?
+  combineColorNote String?
+  note             String?
+
+  @@map("order_details")
+}
+
+enum DiamondStyle {
+  Square
+  Rounded
+}
+
+enum DiamondPosition {
+  Middle
+  Bottom
+}
+
+enum LinePosition {
+  Middle
+  Bottom
+}
+
+enum FontFamily {
+  TimeNewRoman
+  Aria
+}
+
+enum Owner {
+  Main
+  Fiance
+}
+
+enum WarrantyContent {
+  ChangeSize
+  Refinish
+  RepairDiamond
+  Others
+}
+
+model CustomerWarrantyLog {
+  id                   Int              @id @default(autoincrement())
+  createdAt            DateTime         @default(now())
+  updatedAt            DateTime         @updatedAt
+  customerId           Int
+  customer             Customer         @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  agencyId             Int
+  agency               Agency           @relation(fields: [agencyId], references: [id], onDelete: Cascade)
+  orderId              Int
+  order                Order            @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  dateOfReceive        DateTime
+  dateExpectedDelivery DateTime?
+  dateDoneDelivery     DateTime?
+  warrantyContent      WarrantyContent?
+  dateShipment         DateTime?
+  informationDetail    String?
+  saleAmount           Int?
+  paymentDay           DateTime?
+  paymentMethod        PaymentMethod?
+  completionContact    String?
+
+  staffName String?
+
+  @@map("customer_warranty_logs")
+}
